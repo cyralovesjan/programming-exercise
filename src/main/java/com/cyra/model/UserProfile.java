@@ -1,7 +1,10 @@
 package com.cyra.model;
 
-public class UserProfile {
+import java.io.Serializable;
 
+public class UserProfile implements Serializable {
+
+	private static final long serialVersionUID = -4550230756931316649L;
 	private String company;
 	private String name;
 	private String position;
