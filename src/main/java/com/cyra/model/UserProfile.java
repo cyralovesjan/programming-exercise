@@ -40,4 +40,10 @@ public class UserProfile implements Serializable {
 		this.position = position;
 	}
 
+	@Override
+	public String toString() {
+		return "UserProfile [company=" + company + ", name=" + name + ", position=" + position + "]";
+	}
+
+	
 }
