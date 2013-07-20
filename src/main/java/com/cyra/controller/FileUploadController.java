@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -27,6 +26,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cyra.form.MultiFileUploadForm;
@@ -75,13 +75,13 @@ public class FileUploadController {
 	}
 
 	@RequestMapping(value = "/processrulefile", method = RequestMethod.POST)
-	public String processrulefile(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm,
-			HttpServletRequest request, HttpServletResponse response) throws IllegalStateException, IOException,
-			ArchiveException {
+	@ResponseBody
+	public void processrulefile(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm,
+			HttpServletResponse response) throws IllegalStateException, IOException, ArchiveException {
 
 		List<MultipartFile> files = uploadForm.getFiles();
 
-		System.out.println("LIST: " + csvService.listUserProfiles());
+		List<TextFile> textFiles = new ArrayList<TextFile>();
 		if (null != files && files.size() > 0) {
 			for (MultipartFile multipartFile : files) {
 
@@ -107,7 +107,6 @@ public class FileUploadController {
 					map.put(key.toString(), userLists);
 				}
 
-				List<TextFile> textFiles = new ArrayList<TextFile>();
 				for (Entry<String, List<UserProfile>> entry : map.entrySet()) {
 					StringBuilder sb = new StringBuilder();
 					sb.append("Company\t");
@@ -128,17 +127,17 @@ public class FileUploadController {
 					textFiles.add(new TextFile(entry.getKey() + ".txt", sb.toString()));
 				}
 
-				byte[] zipByteArray = ZipUtil.toZip(textFiles);
-				ServletOutputStream outStream = response.getOutputStream();
-				response.setContentType("application/zip");
-				response.setContentLength(zipByteArray.length);
-				String filename = "result-" + DateFormatUtils.format(new Date(), "yyyy-MM-dd-HHmmss") + ".zip";
-				response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-				outStream.write(zipByteArray);
-				outStream.close();
 			}
 
 		}
-		return "file_upload_success";
+		byte[] zipByteArray = ZipUtil.toZip(textFiles);
+		ServletOutputStream outStream = response.getOutputStream();
+		response.setContentType("application/zip");
+		response.setContentLength(zipByteArray.length);
+		String filename = "result-" + DateFormatUtils.format(new Date(), "yyyy-MM-dd-HHmmss") + ".zip";
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		outStream.write(zipByteArray);
+		outStream.close();
+		// return "file_upload_success";
 	}
 }
