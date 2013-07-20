@@ -1,12 +1,9 @@
 package com.cyra.controller;
 
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +13,8 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.drools.KnowledgeBase;
 import org.drools.builder.KnowledgeBuilder;
 import org.drools.builder.KnowledgeBuilderFactory;
@@ -34,6 +33,8 @@ import com.cyra.form.MultiFileUploadForm;
 import com.cyra.model.UserProfile;
 import com.cyra.service.CsvService;
 import com.cyra.util.CsvParserUtil;
+import com.cyra.util.TextFile;
+import com.cyra.util.ZipUtil;
 
 @Controller
 public class FileUploadController {
@@ -47,7 +48,8 @@ public class FileUploadController {
 	}
 
 	@RequestMapping(value = "/save", method = RequestMethod.POST)
-	public String save(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm, Model map) throws IllegalStateException, IOException {
+	public String save(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm, Model map)
+			throws IllegalStateException, IOException {
 
 		List<MultipartFile> files = uploadForm.getFiles();
 
@@ -64,7 +66,8 @@ public class FileUploadController {
 		}
 
 		for (UserProfile user : csvService.listUserProfiles()) {
-			System.out.println(String.format("Company %s Name %s Position %s", user.getCompany(), user.getName(), user.getPosition()));
+			System.out.println(String.format("Company %s Name %s Position %s", user.getCompany(), user.getName(),
+					user.getPosition()));
 		}
 
 		map.addAttribute("files", fileNames);
@@ -72,7 +75,9 @@ public class FileUploadController {
 	}
 
 	@RequestMapping(value = "/processrulefile", method = RequestMethod.POST)
-	public String processrulefile(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm, HttpServletRequest request, HttpServletResponse response) throws IllegalStateException, IOException {
+	public String processrulefile(@ModelAttribute("uploadForm") MultiFileUploadForm uploadForm,
+			HttpServletRequest request, HttpServletResponse response) throws IllegalStateException, IOException,
+			ArchiveException {
 
 		List<MultipartFile> files = uploadForm.getFiles();
 
@@ -102,18 +107,14 @@ public class FileUploadController {
 					map.put(key.toString(), userLists);
 				}
 
+				List<TextFile> textFiles = new ArrayList<TextFile>();
 				for (Entry<String, List<UserProfile>> entry : map.entrySet()) {
-					System.out.println("Key = " + entry.getKey() + ", Value = " + entry.getValue());
-					String filename = entry.getKey() + ".txt";
-					System.out.println("FILENAME: " + filename);
-					ByteArrayOutputStream os = new ByteArrayOutputStream();
-					// write it
 					StringBuilder sb = new StringBuilder();
 					sb.append("Company\t");
 					sb.append("Name\t");
 					sb.append("Position\t");
 					sb.append("\n");
-					
+
 					for (UserProfile userToWrite : entry.getValue()) {
 						sb.append(userToWrite.getCompany());
 						sb.append("\t");
@@ -122,26 +123,22 @@ public class FileUploadController {
 						sb.append(userToWrite.getPosition());
 						sb.append("\n");
 
-						
 					}
-					
-					System.out.println("TEST::::" + sb.toString());
-					
-					os.write(sb.toString().getBytes());
-					byte[] byteAray = os.toByteArray();
-					
-					ServletOutputStream outStream = response.getOutputStream();
-					response.setContentType("text/plain");
-					response.setContentLength(byteAray.length);
-					response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-					outStream.write(byteAray);
-					outStream.close();
-					
+
+					textFiles.add(new TextFile(entry.getKey() + ".txt", sb.toString()));
 				}
+
+				byte[] zipByteArray = ZipUtil.toZip(textFiles);
+				ServletOutputStream outStream = response.getOutputStream();
+				response.setContentType("application/zip");
+				response.setContentLength(zipByteArray.length);
+				String filename = "result-" + DateFormatUtils.format(new Date(), "yyyy-MM-dd-HHmmss") + ".zip";
+				response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+				outStream.write(zipByteArray);
+				outStream.close();
 			}
 
 		}
 		return "file_upload_success";
 	}
-
 }
