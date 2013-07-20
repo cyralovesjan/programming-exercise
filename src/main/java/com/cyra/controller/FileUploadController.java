@@ -65,11 +65,6 @@ public class FileUploadController {
 			}
 		}
 
-		for (UserProfile user : csvService.listUserProfiles()) {
-			System.out.println(String.format("Company %s Name %s Position %s", user.getCompany(), user.getName(),
-					user.getPosition()));
-		}
-
 		map.addAttribute("files", fileNames);
 		return "file_upload_success";
 	}
@@ -121,12 +116,9 @@ public class FileUploadController {
 						sb.append("\t");
 						sb.append(userToWrite.getPosition());
 						sb.append("\n");
-
 					}
-
 					textFiles.add(new TextFile(entry.getKey() + ".txt", sb.toString()));
 				}
-
 			}
 
 		}
@@ -138,6 +130,5 @@ public class FileUploadController {
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 		outStream.write(zipByteArray);
 		outStream.close();
-		// return "file_upload_success";
 	}
 }
